@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"time"
 	"bytes"
+	"os"
 )
 
 type ReloadContinuationData struct {
@@ -204,8 +205,7 @@ func FetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) () {
 }
 
 func main() {
-	// TODO:: Take youtube video videoUrl from CLI
-	videoUrl := "https://www.youtube.com/watch?v=5qap5aO4i9A"
+	videoUrl := os.Args[1]
 	initialData, playerResponse, _ytCfg := FetchInitialData(videoUrl)
 	// parse the responses
 	var ytCfg YtCfg
