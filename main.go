@@ -66,9 +66,17 @@ type ContinuationContents struct {
 	LiveChatContinuation LiveChatContinuation `json:"liveChatContinuation"`
 }
 
+type ContinuationChat struct {
+	TimedContinuationData TimedContinuationData `json:"timedContinuationData"`
+}
+
+type TimedContinuationData struct {
+	Continuation string
+	TimeoutMs int
+}
 type LiveChatContinuation struct {
 	Actions []Actions `json:"actions"`
-	// Actions map[string]interface{} `json:"actions"`
+	Continuations []ContinuationChat `json:"continuations"`
 }
 
 type Actions struct {
@@ -92,9 +100,13 @@ type Message struct {
 }
 
 type Runs struct {
-	Text string `json:"text"`
+	Text string `json:"text,omitempty"`
+	Emoji Emoji `json:"emoji,omitempty"`
 }
 
+type Emoji struct {
+	EmojiId string `json:"emojiId"`
+}
 type ChatMessagesResponse struct {
 	ContinuationContents ContinuationContents `json:"continuationContents"`
 }
@@ -158,20 +170,17 @@ func parseVideoData(playerResponseMap, initialDataMap  map[string]interface{}) (
 	return subMenuItems
 }
 
-// Fetch chat messages from the given Youtube URL
 func FetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) () {
-	// initialPageUrl := fmt.Sprintf("https://www.youtube.com/%s?continuation=%s", API_TYPE, initialContinuationInfo)
-	// fmt.Println(initialPageUrl)
 	apiKey := ytCfg.INNERTUBE_API_KEY
 	continuationUrl := fmt.Sprintf("https://www.youtube.com/youtubei/v1/live_chat/get_%s?key=%s", API_TYPE, apiKey)
 	innertubeContext := ytCfg.INNERTUBE_CONTEXT
-	context := Context{innertubeContext, initialContinuationInfo}
-	b, err := json.Marshal(context)
-    if err != nil {
-        fmt.Println(err)
-    }
 	// Now loop through all the chat messages
 	for {
+		context := Context{innertubeContext, initialContinuationInfo}
+		b, err := json.Marshal(context)
+		if err != nil {
+			fmt.Println(err)
+		}
 		var jsonData = []byte(b)
 		request, error := http.NewRequest("POST", continuationUrl, bytes.NewBuffer(jsonData))
 		request.Header.Set("Content-Type", "application/json; charset=UTF-8")
@@ -188,7 +197,7 @@ func FetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) () {
 		}
 		body, _ := ioutil.ReadAll(response.Body)
 		var bird ChatMessagesResponse
-		err := json.Unmarshal([]byte(string(body)), &bird)
+		json.Unmarshal([]byte(string(body)), &bird)
 		if err != nil {
 			panic(err)
 		}
@@ -196,11 +205,25 @@ func FetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) () {
 		// iterate over actions 
 		for _, action := range actions {
 			runs := action.AddChatItemAction.Item.LiveChatTextMessageRenderer.Message.Runs
-			if len(runs) > 0 && len(runs[0].Text) > 0 {
-				fmt.Println(runs[0].Text)
+			if len(runs) > 0 {
+				for _, run := range runs {
+					if run.Text != "" {
+						fmt.Print(run.Text)
+					} else {
+						fmt.Print(run.Emoji.EmojiId)
+					}
+				}
+				fmt.Println()
 			}
 		}
-		time.Sleep(time.Second * 5)
+		// set new continuation and timeout
+		initialContinuationInfo = bird.ContinuationContents.LiveChatContinuation.Continuations[0].TimedContinuationData.Continuation
+		timeOutMs := bird.ContinuationContents.LiveChatContinuation.Continuations[0].TimedContinuationData.TimeoutMs
+		if timeOutMs > 0 {
+			time.Sleep(time.Duration(timeOutMs) * time.Millisecond)
+		} else {
+			time.Sleep(time.Second * 5)
+		}
 	}
 }
 
