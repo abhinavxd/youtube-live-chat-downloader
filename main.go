@@ -1,15 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
-	"encoding/json"
 	"time"
-	"bytes"
-	"os"
 )
 
 type ReloadContinuationData struct {
@@ -20,7 +20,7 @@ type Continuation struct {
 }
 
 type SubMenuItems struct {
-	Title string
+	Title        string
 	Continuation Continuation
 }
 
@@ -29,37 +29,37 @@ type ConfigInfo struct {
 }
 
 type Client struct {
-	Hl string `json:"hl"`
-	Gl string	`json:"gl"`
-	RemoteHost string `json:"remoteHost"`
-	DeviceMake string `json:"deviceMake"`
-	DeviceModel string `json:"deviceModel"`
-	VisitorData string `json:"visitorData"`
-	UserAgent string `json:"userAgent"`
-	ClientName string `json:"clientName"`
-	ClientVersion string	`json:"clientVersion"`
-	OsName string	`json:"osName"`
-	OsVersion string `json:"osVersion"`
-	OriginalUrl string `json:"originalUrl"`
-	Platform string `json:"platform"`
-	ClientFormFactor string `json:"clientFormFactor"`
-	ConfigInfo ConfigInfo `json:"configInfo"`
+	Hl               string     `json:"hl"`
+	Gl               string     `json:"gl"`
+	RemoteHost       string     `json:"remoteHost"`
+	DeviceMake       string     `json:"deviceMake"`
+	DeviceModel      string     `json:"deviceModel"`
+	VisitorData      string     `json:"visitorData"`
+	UserAgent        string     `json:"userAgent"`
+	ClientName       string     `json:"clientName"`
+	ClientVersion    string     `json:"clientVersion"`
+	OsName           string     `json:"osName"`
+	OsVersion        string     `json:"osVersion"`
+	OriginalUrl      string     `json:"originalUrl"`
+	Platform         string     `json:"platform"`
+	ClientFormFactor string     `json:"clientFormFactor"`
+	ConfigInfo       ConfigInfo `json:"configInfo"`
 }
 type InnerTubeContext struct {
 	Client Client `json:"client"`
 }
 
 type YtCfg struct {
-	INNERTUBE_API_KEY string
-	INNERTUBE_CONTEXT InnerTubeContext
+	INNERTUBE_API_KEY             string
+	INNERTUBE_CONTEXT             InnerTubeContext
 	INNERTUBE_CONTEXT_CLIENT_NAME string
-	INNERTUBE_CLIENT_VERSION string
-	ID_TOKEN string
+	INNERTUBE_CLIENT_VERSION      string
+	ID_TOKEN                      string
 }
 
 type Context struct {
-	Context InnerTubeContext `json:"context"`
-	Continuation string `json:"continuation"`
+	Context      InnerTubeContext `json:"context"`
+	Continuation string           `json:"continuation"`
 }
 
 type ContinuationContents struct {
@@ -72,10 +72,10 @@ type ContinuationChat struct {
 
 type TimedContinuationData struct {
 	Continuation string
-	TimeoutMs int
+	TimeoutMs    int
 }
 type LiveChatContinuation struct {
-	Actions []Actions `json:"actions"`
+	Actions       []Actions          `json:"actions"`
 	Continuations []ContinuationChat `json:"continuations"`
 }
 
@@ -88,7 +88,7 @@ type AddChatItemAction struct {
 }
 
 type Item struct {
-	LiveChatTextMessageRenderer	LiveChatTextMessageRenderer	  `json:"liveChatTextMessageRenderer"`
+	LiveChatTextMessageRenderer LiveChatTextMessageRenderer `json:"liveChatTextMessageRenderer"`
 }
 
 type LiveChatTextMessageRenderer struct {
@@ -100,8 +100,8 @@ type Message struct {
 }
 
 type Runs struct {
-	Text string `json:"text,omitempty"`
-	Emoji Emoji `json:"emoji,omitempty"`
+	Text  string `json:"text,omitempty"`
+	Emoji Emoji  `json:"emoji,omitempty"`
 }
 
 type Emoji struct {
@@ -112,11 +112,11 @@ type ChatMessagesResponse struct {
 }
 
 const (
-	API_TYPE = "live_chat"
-	leftMatchRegex = `"INNERTUBE_API_KEY":"`
-	rightMatchRegex = `",`
-	ytCfgRe = `ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;`
-    _YT_INITIAL_DATA_RE = `(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)`
+	API_TYPE                    = "live_chat"
+	leftMatchRegex              = `"INNERTUBE_API_KEY":"`
+	rightMatchRegex             = `",`
+	ytCfgRe                     = `ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;`
+	_YT_INITIAL_DATA_RE         = `(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)`
 	_YT_INITIAL_PLAYER_RESPONSE = `ytInitialPlayerResponse\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)`
 )
 
@@ -131,7 +131,7 @@ func FetchInitialData(videoUrl string) (string, string, string) {
 	if err != nil {
 		panic(err)
 	}
-	
+
 	defer resp.Body.Close()
 
 	intArr, err := ioutil.ReadAll(resp.Body)
@@ -152,11 +152,8 @@ func FetchInitialData(videoUrl string) (string, string, string) {
 	return initialData, playerResponse, ytCfg
 }
 
-func parseVideoData(playerResponseMap, initialDataMap  map[string]interface{}) ([]SubMenuItems) {
-	_subMenuItems := initialDataMap["contents"].(map[string]interface{})["twoColumnWatchNextResults"].
-	(map[string]interface{})["conversationBar"].(map[string]interface{})["liveChatRenderer"].(map[string]interface{})["header"].
-	(map[string]interface{})["liveChatHeaderRenderer"].(map[string]interface{})["viewSelector"].
-	(map[string]interface{})["sortFilterSubMenuRenderer"].(map[string]interface{})["subMenuItems"]
+func parseVideoData(playerResponseMap, initialDataMap map[string]interface{}) []SubMenuItems {
+	_subMenuItems := initialDataMap["contents"].(map[string]interface{})["twoColumnWatchNextResults"].(map[string]interface{})["conversationBar"].(map[string]interface{})["liveChatRenderer"].(map[string]interface{})["header"].(map[string]interface{})["liveChatHeaderRenderer"].(map[string]interface{})["viewSelector"].(map[string]interface{})["sortFilterSubMenuRenderer"].(map[string]interface{})["subMenuItems"]
 	_json, err := json.Marshal(_subMenuItems)
 	if err != nil {
 		panic(err)
@@ -170,7 +167,7 @@ func parseVideoData(playerResponseMap, initialDataMap  map[string]interface{}) (
 	return subMenuItems
 }
 
-func FetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) () {
+func FetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) {
 	apiKey := ytCfg.INNERTUBE_API_KEY
 	continuationUrl := fmt.Sprintf("https://www.youtube.com/youtubei/v1/live_chat/get_%s?key=%s", API_TYPE, apiKey)
 	innertubeContext := ytCfg.INNERTUBE_CONTEXT
@@ -202,7 +199,7 @@ func FetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) () {
 			panic(err)
 		}
 		actions := bird.ContinuationContents.LiveChatContinuation.Actions
-		// iterate over actions 
+		// iterate over actions
 		for _, action := range actions {
 			runs := action.AddChatItemAction.Item.LiveChatTextMessageRenderer.Message.Runs
 			if len(runs) > 0 {
@@ -245,4 +242,3 @@ func main() {
 
 	FetchChatMessages(initialContinuationInfo, ytCfg)
 }
-	
