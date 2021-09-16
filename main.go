@@ -92,7 +92,15 @@ type Item struct {
 }
 
 type LiveChatTextMessageRenderer struct {
-	Message Message `json:"message"`
+	Message    Message `json:"message"`
+	AuthorName struct {
+		SimpleText string `json:"simpleText"`
+	}
+	ContextMenuEndPoint ContextMenuEndPoint `json:"contextMenuEndPoint"`
+}
+
+type ContextMenuEndPoint struct {
+	TimestampUsec int `json:"timestampUsec"`
 }
 
 type Message struct {
@@ -203,6 +211,14 @@ func FetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) {
 		for _, action := range actions {
 			runs := action.AddChatItemAction.Item.LiveChatTextMessageRenderer.Message.Runs
 			if len(runs) > 0 {
+				authorName := action.AddChatItemAction.Item.LiveChatTextMessageRenderer.AuthorName.SimpleText
+				// timeStampUSec := action.AddChatItemAction.Item.LiveChatTextMessageRenderer.ContextMenuEndPoint.TimestampUsec
+				if err != nil {
+					panic(err)
+				}
+				// timeStamp := time.Unix(int64(timeStampUSec), 0)
+				// fmt.Print(timeStamp.String() + " | ")
+				fmt.Print(authorName + ": ")
 				for _, run := range runs {
 					if run.Text != "" {
 						fmt.Print(run.Text)
