@@ -120,12 +120,10 @@ type ChatMessagesResponse struct {
 }
 
 const (
-	API_TYPE                    = "live_chat"
-	leftMatchRegex              = `"INNERTUBE_API_KEY":"`
-	rightMatchRegex             = `",`
-	ytCfgRe                     = `ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;`
-	_YT_INITIAL_DATA_RE         = `(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)`
-	_YT_INITIAL_PLAYER_RESPONSE = `ytInitialPlayerResponse\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)`
+	API_TYPE              = "live_chat"
+	YT_CFG_REGEX          = `ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;`
+	INITIAL_DATA_REGEX    = `(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)`
+	PLAYER_RESPONSE_REGEX = `ytInitialPlayerResponse\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)`
 )
 
 func regexSearch(regex string, str string) []string {
@@ -148,13 +146,13 @@ func FetchInitialData(videoUrl string) (string, string, string) {
 	}
 	html := string(intArr)
 	// TODO ::  work on regex and do not use trims
-	initialDataArr := regexSearch(_YT_INITIAL_DATA_RE, html)
+	initialDataArr := regexSearch(INITIAL_DATA_REGEX, html)
 	initialData := strings.Trim(initialDataArr[0], "ytInitialData = ")
 	initialData = strings.Trim(initialData, ";</script")
-	playerResponse := regexSearch(_YT_INITIAL_PLAYER_RESPONSE, html)[0]
+	playerResponse := regexSearch(PLAYER_RESPONSE_REGEX, html)[0]
 	playerResponse = strings.Trim(playerResponse, "ytInitialPlayerResponse = ")
 	playerResponse = strings.Trim(playerResponse, ";</sc")
-	ytCfg := regexSearch(ytCfgRe, html)[0]
+	ytCfg := regexSearch(YT_CFG_REGEX, html)[0]
 	ytCfg = strings.Trim(ytCfg, "ytcfg.set(")
 	ytCfg = strings.Trim(ytCfg, ");")
 	return initialData, playerResponse, ytCfg
