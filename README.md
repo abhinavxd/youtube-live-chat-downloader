@@ -1,5 +1,5 @@
 # yt-chat-archive
-
+#### Under development 
 Fetches Youtube live chat messages and prints it in console (for now) without any authentication 
 
 
