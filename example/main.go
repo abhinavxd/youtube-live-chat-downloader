@@ -1,7 +1,15 @@
 package main
 
 import YtChat "github.com/abhinavxd/yt-chat-archive"
+import "fmt"
 
 func main() {
-	YtChat.FetchLiveChat("https://www.youtube.com/watch?v=5qap5aO4i9A")
+	continuation, cfg := YtChat.ParseInitialData("https://www.youtube.com/watch?v=5qap5aO4i9A")
+	for {
+		chat, newContinuation := YtChat.FetchContinuationChat(continuation, cfg)
+		continuation = newContinuation
+		for _, msg := range chat {
+			fmt.Println(msg.AuthorName, ": ", msg.Message)
+		}
+	}
 }
