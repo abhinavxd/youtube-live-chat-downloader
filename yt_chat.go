@@ -66,13 +66,16 @@ type ContinuationContents struct {
 }
 
 type ContinuationChat struct {
-	TimedContinuationData TimedContinuationData `json:"timedContinuationData"`
+	TimedContinuationData struct {
+		Continuation string `json:"continuation"`
+		TimeoutMs    int    `json:"timeoutMs"`
+	} `json:"timedContinuationData"`
+	InvalidationContinuationData struct {
+		Continuation string `json:"continuation"`
+		TimeoutMs    int    `json:"timeoutMs"`
+	} `json:"invalidationContinuationData"`
 }
 
-type TimedContinuationData struct {
-	Continuation string
-	TimeoutMs    int
-}
 type LiveChatContinuation struct {
 	Actions       []Actions          `json:"actions"`
 	Continuations []ContinuationChat `json:"continuations"`
@@ -128,9 +131,9 @@ var (
 )
 
 const (
-	API_TYPE              = "live_chat"
-	YT_CFG_REGEX          = `ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;`
-	INITIAL_DATA_REGEX    = `(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)`
+	API_TYPE           = "live_chat"
+	YT_CFG_REGEX       = `ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;`
+	INITIAL_DATA_REGEX = `(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)`
 )
 
 func regexSearch(regex string, str string) []string {
@@ -195,9 +198,15 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 		}
 	}
 	// get new continuation and timeout
-	initialContinuationInfo = chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0].TimedContinuationData.Continuation
-	timeOutMs := chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0].TimedContinuationData.TimeoutMs
-	return chatMessages, initialContinuationInfo, timeOutMs
+	timeoutMs := 5
+	if chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0].TimedContinuationData.Continuation == "" {
+		initialContinuationInfo = chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0].InvalidationContinuationData.Continuation
+		timeoutMs = chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0].InvalidationContinuationData.TimeoutMs
+	} else {
+		initialContinuationInfo = chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0].TimedContinuationData.Continuation
+		timeoutMs = chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0].TimedContinuationData.TimeoutMs
+	}
+	return chatMessages, initialContinuationInfo, timeoutMs
 }
 
 func ParseInitialData(videoUrl string) (string, YtCfg) {
@@ -232,9 +241,9 @@ func ParseInitialData(videoUrl string) (string, YtCfg) {
 }
 
 func FetchContinuationChat(continuation string, ytCfg YtCfg) ([]ChatMessage, string) {
-	chatMessages, continuation, timeOutMs := fetchChatMessages(continuation, ytCfg)
-	if timeOutMs > 0 {
-		time.Sleep(time.Duration(timeOutMs) * time.Millisecond)
+	chatMessages, continuation, timeoutMs := fetchChatMessages(continuation, ytCfg)
+	if timeoutMs > 0 {
+		time.Sleep(time.Duration(timeoutMs) * time.Millisecond)
 	} else {
 		time.Sleep(time.Second * 5)
 	}
