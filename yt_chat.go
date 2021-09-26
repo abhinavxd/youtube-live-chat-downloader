@@ -116,6 +116,12 @@ type Runs struct {
 
 type Emoji struct {
 	EmojiId string `json:"emojiId"`
+	IsCustomEmoji bool `json:"isCustomEmoji,omitempty"`
+	Image struct {
+		Thumbnails []struct {
+			Url string `json:"url,omitempty"`
+		}
+	}
 }
 type ChatMessagesResponse struct {
 	ContinuationContents ContinuationContents `json:"continuationContents"`
@@ -190,7 +196,18 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 				if run.Text != "" {
 					text += run.Text
 				} else {
-					text += run.Emoji.EmojiId
+					if run.Emoji.IsCustomEmoji {
+						numberOfThumbnails := len(run.Emoji.Image.Thumbnails)
+						// Adding some whitespace after custom image URLs
+						// without the whitespace it would be difficult to parse these URLs
+						if numberOfThumbnails > 0 && numberOfThumbnails == 2 {
+							text += run.Emoji.Image.Thumbnails[1].Url + " "
+						} else if numberOfThumbnails == 1 {
+							text += run.Emoji.Image.Thumbnails[0].Url + " "
+						}
+					} else {
+						text += run.Emoji.EmojiId
+					}
 				}
 			}
 			chatMessage.Message = text
