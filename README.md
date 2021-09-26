@@ -1,6 +1,6 @@
 # youtube-live-chat-downloader
 
-Fetches Youtube live chat messages without any authentication 
+Fetches Youtube live chat messages with no authentication required.
 
 ## How does it work?
 The request for fetching live chat is created by parsing the HTML content.
