@@ -1,3 +1,3 @@
-module github.com/abhinavxd/yt-chat-archive
+module abhinavr.me/youtube-live-chat-downloader
 
 go 1.16
