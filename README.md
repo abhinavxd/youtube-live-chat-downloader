@@ -1,4 +1,4 @@
-# yt-chat-archive
+# youtube-live-chat-downloader
 
 Fetches Youtube live chat messages without any authentication 
 
@@ -7,7 +7,7 @@ Fetches Youtube live chat messages without any authentication
 ```go
 package main
 
-import YtChat "github.com/abhinavxd/yt-chat-archive"
+import YtChat "github.com/abhinavxd/youtube-live-chat-downloader"
 import "fmt"
 
 func main() {
