@@ -3,8 +3,8 @@
 Fetches Youtube live chat messages with no authentication required.
 
 ## How does it work?
-The request for fetching live chat is created by parsing the HTML content.
-Youtube API returns a 'continuation' in each response which is to be send in next API request to receive newly received messages.
+* The request for fetching live chat is created by parsing the HTML content.<br>
+* Youtube API returns a 'continuation' in each response which is to be sent in next API request to receive new messages (skipping already sent ones)
 
 
 ## Getting started 
