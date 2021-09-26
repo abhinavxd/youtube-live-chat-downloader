@@ -1,6 +1,6 @@
 package main
 
-import YtChat "github.com/abhinavxd/yt-chat-archive"
+import YtChat "github.com/abhinavxd/youtube-live-chat-downloader"
 import "fmt"
 
 func main() {
