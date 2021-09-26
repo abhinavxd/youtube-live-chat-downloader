@@ -181,6 +181,10 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) {
 		b, _ := json.Marshal(context)
 		var jsonData = []byte(b)
 		request, error := http.NewRequest("POST", continuationUrl, bytes.NewBuffer(jsonData))
+		if error != nil {
+			fmt.Println("Error:", error)
+			os.Exit(1)
+		}
 		request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
 		client := &http.Client{}
@@ -188,7 +192,7 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) {
 		if error != nil {
 			panic(error)
 		}
-		defer response.Body.Close()
+		response.Body.Close()
 
 		if response.StatusCode != 200 {
 			panic("Some error fetching chat messages")
@@ -202,9 +206,6 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) {
 			runs := action.AddChatItemAction.Item.LiveChatTextMessageRenderer.Message.Runs
 			if len(runs) > 0 {
 				authorName := action.AddChatItemAction.Item.LiveChatTextMessageRenderer.AuthorName.SimpleText
-				// timeStampUSec := action.AddChatItemAction.Item.LiveChatTextMessageRenderer.ContextMenuEndPoint.TimestampUsec
-				// timeStamp := time.Unix(int64(timeStampUSec), 0)
-				// fmt.Print(timeStamp.String() + " | ")
 				fmt.Print(authorName + ": ")
 				for _, run := range runs {
 					if run.Text != "" {
