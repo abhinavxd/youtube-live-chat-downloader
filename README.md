@@ -2,7 +2,6 @@
 
 Fetches Youtube live chat messages without any authentication 
 
-
 ## Getting started 
     package main
 
@@ -20,6 +19,9 @@ Fetches Youtube live chat messages without any authentication
         }
     }
 
+
+## How does it work?
+The code parses Youtube webpage HTML data and sends a POST request periodically to fetch chat messages
 
 <!-- CONTRIBUTING -->
 ## Contributing
