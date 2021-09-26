@@ -2,26 +2,25 @@
 
 Fetches Youtube live chat messages without any authentication 
 
+
 ## Getting started 
-    package main
+```go
+package main
 
-    import YtChat "github.com/abhinavxd/yt-chat-archive"
-    import "fmt"
+import YtChat "github.com/abhinavxd/yt-chat-archive"
+import "fmt"
 
-    func main() {
-        continuation, cfg := YtChat.ParseInitialData("https://www.youtube.com/watch?v=5qap5aO4i9A")
-        for {
-            chat, newContinuation := YtChat.FetchContinuationChat(continuation, cfg)
-            continuation = newContinuation
-            for _, msg := range chat {
-                fmt.Println(msg.AuthorName, ": ", msg.Message)
-            }
+func main() {
+    continuation, cfg := YtChat.ParseInitialData("https://www.youtube.com/watch?v=5qap5aO4i9A")
+    for {
+        chat, newContinuation := YtChat.FetchContinuationChat(continuation, cfg)
+        continuation = newContinuation
+        for _, msg := range chat {
+            fmt.Println(msg.AuthorName, ": ", msg.Message)
         }
     }
-
-
-## How does it work?
-The code parses Youtube webpage HTML data and sends a POST request periodically to fetch chat messages
+}
+```
 
 <!-- CONTRIBUTING -->
 ## Contributing
