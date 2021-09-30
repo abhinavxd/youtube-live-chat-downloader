@@ -11,41 +11,35 @@ import (
 	"time"
 )
 
-type ReloadContinuationData struct {
-	Continuation string
-}
-type Continuation struct {
-	ReloadContinuationData ReloadContinuationData
-}
-
 type SubMenuItems struct {
 	Title        string
-	Continuation Continuation
+	Continuation struct {
+		ReloadContinuationData struct {
+			Continuation string
+		}
+	}
 }
 
-type ConfigInfo struct {
-	AppInstallData string `json:"appInstallData"`
-}
-
-type Client struct {
-	Hl               string     `json:"hl"`
-	Gl               string     `json:"gl"`
-	RemoteHost       string     `json:"remoteHost"`
-	DeviceMake       string     `json:"deviceMake"`
-	DeviceModel      string     `json:"deviceModel"`
-	VisitorData      string     `json:"visitorData"`
-	UserAgent        string     `json:"userAgent"`
-	ClientName       string     `json:"clientName"`
-	ClientVersion    string     `json:"clientVersion"`
-	OsName           string     `json:"osName"`
-	OsVersion        string     `json:"osVersion"`
-	OriginalUrl      string     `json:"originalUrl"`
-	Platform         string     `json:"platform"`
-	ClientFormFactor string     `json:"clientFormFactor"`
-	ConfigInfo       ConfigInfo `json:"configInfo"`
-}
 type InnerTubeContext struct {
-	Client Client `json:"client"`
+	Client struct {
+		Hl               string     `json:"hl"`
+		Gl               string     `json:"gl"`
+		RemoteHost       string     `json:"remoteHost"`
+		DeviceMake       string     `json:"deviceMake"`
+		DeviceModel      string     `json:"deviceModel"`
+		VisitorData      string     `json:"visitorData"`
+		UserAgent        string     `json:"userAgent"`
+		ClientName       string     `json:"clientName"`
+		ClientVersion    string     `json:"clientVersion"`
+		OsName           string     `json:"osName"`
+		OsVersion        string     `json:"osVersion"`
+		OriginalUrl      string     `json:"originalUrl"`
+		Platform         string     `json:"platform"`
+		ClientFormFactor string     `json:"clientFormFactor"`
+		ConfigInfo       struct {
+			AppInstallData string `json:"appInstallData"`
+		} `json:"configInfo"`
+	} `json:"client"`
 }
 
 type YtCfg struct {
@@ -61,10 +55,6 @@ type Context struct {
 	Continuation string           `json:"continuation"`
 }
 
-type ContinuationContents struct {
-	LiveChatContinuation LiveChatContinuation `json:"liveChatContinuation"`
-}
-
 type ContinuationChat struct {
 	TimedContinuationData struct {
 		Continuation string `json:"continuation"`
@@ -76,55 +66,44 @@ type ContinuationChat struct {
 	} `json:"invalidationContinuationData"`
 }
 
-type LiveChatContinuation struct {
-	Actions       []Actions          `json:"actions"`
-	Continuations []ContinuationChat `json:"continuations"`
-}
-
 type Actions struct {
-	AddChatItemAction AddChatItemAction `json:"addChatItemAction"`
-}
-
-type AddChatItemAction struct {
-	Item Item `json:"item"`
-}
-
-type Item struct {
-	LiveChatTextMessageRenderer LiveChatTextMessageRenderer `json:"liveChatTextMessageRenderer"`
-}
-
-type LiveChatTextMessageRenderer struct {
-	Message    Message `json:"message"`
-	AuthorName struct {
-		SimpleText string `json:"simpleText"`
-	}
-	ContextMenuEndPoint ContextMenuEndPoint `json:"contextMenuEndPoint"`
-}
-
-type ContextMenuEndPoint struct {
-	TimestampUsec int `json:"timestampUsec"`
-}
-
-type Message struct {
-	Runs []Runs `json:"runs"`
+	AddChatItemAction struct {
+		Item struct {
+			LiveChatTextMessageRenderer struct {
+				Message struct {
+					Runs []Runs `json:"runs"`
+				} `json:"message"`
+				AuthorName struct {
+					SimpleText string `json:"simpleText"`
+				}
+				ContextMenuEndPoint struct {
+					TimestampUsec int `json:"timestampUsec"`
+				} `json:"contextMenuEndPoint"`
+			} `json:"liveChatTextMessageRenderer"`
+		} `json:"item"`
+	} `json:"addChatItemAction"`
 }
 
 type Runs struct {
 	Text  string `json:"text,omitempty"`
-	Emoji Emoji  `json:"emoji,omitempty"`
+	Emoji struct {
+		EmojiId string `json:"emojiId"`
+		IsCustomEmoji bool `json:"isCustomEmoji,omitempty"`
+		Image struct {
+			Thumbnails []struct {
+				Url string `json:"url,omitempty"`
+			}
+		}
+	}  `json:"emoji,omitempty"`
 }
 
-type Emoji struct {
-	EmojiId string `json:"emojiId"`
-	IsCustomEmoji bool `json:"isCustomEmoji,omitempty"`
-	Image struct {
-		Thumbnails []struct {
-			Url string `json:"url,omitempty"`
-		}
-	}
-}
 type ChatMessagesResponse struct {
-	ContinuationContents ContinuationContents `json:"continuationContents"`
+	ContinuationContents struct {
+		LiveChatContinuation struct {
+			Actions       []Actions          `json:"actions"`
+			Continuations []ContinuationChat `json:"continuations"`
+		} `json:"liveChatContinuation"`
+	} `json:"continuationContents"`
 }
 
 type ChatMessage struct {
@@ -216,12 +195,13 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 	}
 	// get new continuation and timeout
 	timeoutMs := 5
-	if chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0].TimedContinuationData.Continuation == "" {
-		initialContinuationInfo = chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0].InvalidationContinuationData.Continuation
-		timeoutMs = chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0].InvalidationContinuationData.TimeoutMs
+	continuations := chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0]
+	if continuations.TimedContinuationData.Continuation == "" {
+		initialContinuationInfo = continuations.InvalidationContinuationData.Continuation
+		timeoutMs = continuations.InvalidationContinuationData.TimeoutMs
 	} else {
-		initialContinuationInfo = chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0].TimedContinuationData.Continuation
-		timeoutMs = chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0].TimedContinuationData.TimeoutMs
+		initialContinuationInfo = continuations.TimedContinuationData.Continuation
+		timeoutMs = continuations.TimedContinuationData.TimeoutMs
 	}
 	return chatMessages, initialContinuationInfo, timeoutMs
 }
