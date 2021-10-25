@@ -9,6 +9,7 @@ func main() {
 		chat, newContinuation := YtChat.FetchContinuationChat(continuation, cfg)
 		continuation = newContinuation
 		for _, msg := range chat {
+			fmt.Print(msg.Timestamp, " | ")
 			fmt.Println(msg.AuthorName, ": ", msg.Message)
 		}
 	}

@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"strconv"
 )
 
 type SubMenuItems struct {
@@ -76,9 +77,7 @@ type Actions struct {
 				AuthorName struct {
 					SimpleText string `json:"simpleText"`
 				}
-				ContextMenuEndPoint struct {
-					TimestampUsec int `json:"timestampUsec"`
-				} `json:"contextMenuEndPoint"`
+				TimestampUsec string `json:"timestampUsec"`
 			} `json:"liveChatTextMessageRenderer"`
 		} `json:"item"`
 	} `json:"addChatItemAction"`
@@ -109,6 +108,7 @@ type ChatMessagesResponse struct {
 type ChatMessage struct {
 	AuthorName string
 	Message    string
+	Timestamp time.Time
 }
 
 var (
@@ -134,6 +134,14 @@ func parseVideoData(initialDataMap map[string]interface{}) []SubMenuItems {
 	var subMenuItems []SubMenuItems
 	json.Unmarshal([]byte(jsonString), &subMenuItems)
 	return subMenuItems
+}
+
+func parseMicoSeconds(timeStampStr string) time.Time {
+	tm, _ := strconv.ParseInt(timeStampStr, 10, 64)
+	tm = tm / 1000
+    sec := tm / 1000
+    msec := tm % 1000
+    return time.Unix(sec, msec*int64(time.Millisecond))
 }
 
 func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessage, string, int) {
@@ -165,10 +173,12 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 	actions := chatMsgResp.ContinuationContents.LiveChatContinuation.Actions
 	chatMessages := []ChatMessage{}
 	for _, action := range actions {
-		runs := action.AddChatItemAction.Item.LiveChatTextMessageRenderer.Message.Runs
+		liveChatTextMessageRenderer := action.AddChatItemAction.Item.LiveChatTextMessageRenderer
+		runs := liveChatTextMessageRenderer.Message.Runs
 		if len(runs) > 0 {
 			chatMessage := ChatMessage{}
-			authorName := action.AddChatItemAction.Item.LiveChatTextMessageRenderer.AuthorName.SimpleText
+			authorName := liveChatTextMessageRenderer.AuthorName.SimpleText
+			chatMessage.Timestamp = parseMicoSeconds(liveChatTextMessageRenderer.TimestampUsec)
 			chatMessage.AuthorName = authorName
 			text := ""
 			for _, run := range runs {
@@ -239,6 +249,7 @@ func ParseInitialData(videoUrl string) (string, YtCfg) {
 
 func FetchContinuationChat(continuation string, ytCfg YtCfg) ([]ChatMessage, string) {
 	chatMessages, continuation, timeoutMs := fetchChatMessages(continuation, ytCfg)
+	// Sleep for timeoutMs milliseconds sent by the server
 	if timeoutMs > 0 {
 		time.Sleep(time.Duration(timeoutMs) * time.Millisecond)
 	} else {
