@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 )
 
 type SubMenuItems struct {
@@ -23,20 +23,20 @@ type SubMenuItems struct {
 
 type InnerTubeContext struct {
 	Client struct {
-		Hl               string     `json:"hl"`
-		Gl               string     `json:"gl"`
-		RemoteHost       string     `json:"remoteHost"`
-		DeviceMake       string     `json:"deviceMake"`
-		DeviceModel      string     `json:"deviceModel"`
-		VisitorData      string     `json:"visitorData"`
-		UserAgent        string     `json:"userAgent"`
-		ClientName       string     `json:"clientName"`
-		ClientVersion    string     `json:"clientVersion"`
-		OsName           string     `json:"osName"`
-		OsVersion        string     `json:"osVersion"`
-		OriginalUrl      string     `json:"originalUrl"`
-		Platform         string     `json:"platform"`
-		ClientFormFactor string     `json:"clientFormFactor"`
+		Hl               string `json:"hl"`
+		Gl               string `json:"gl"`
+		RemoteHost       string `json:"remoteHost"`
+		DeviceMake       string `json:"deviceMake"`
+		DeviceModel      string `json:"deviceModel"`
+		VisitorData      string `json:"visitorData"`
+		UserAgent        string `json:"userAgent"`
+		ClientName       string `json:"clientName"`
+		ClientVersion    string `json:"clientVersion"`
+		OsName           string `json:"osName"`
+		OsVersion        string `json:"osVersion"`
+		OriginalUrl      string `json:"originalUrl"`
+		Platform         string `json:"platform"`
+		ClientFormFactor string `json:"clientFormFactor"`
 		ConfigInfo       struct {
 			AppInstallData string `json:"appInstallData"`
 		} `json:"configInfo"`
@@ -86,14 +86,14 @@ type Actions struct {
 type Runs struct {
 	Text  string `json:"text,omitempty"`
 	Emoji struct {
-		EmojiId string `json:"emojiId"`
-		IsCustomEmoji bool `json:"isCustomEmoji,omitempty"`
-		Image struct {
+		EmojiId       string `json:"emojiId"`
+		IsCustomEmoji bool   `json:"isCustomEmoji,omitempty"`
+		Image         struct {
 			Thumbnails []struct {
 				Url string `json:"url,omitempty"`
 			}
 		}
-	}  `json:"emoji,omitempty"`
+	} `json:"emoji,omitempty"`
 }
 
 type ChatMessagesResponse struct {
@@ -108,7 +108,7 @@ type ChatMessagesResponse struct {
 type ChatMessage struct {
 	AuthorName string
 	Message    string
-	Timestamp time.Time
+	Timestamp  time.Time
 }
 
 var (
@@ -139,9 +139,9 @@ func parseVideoData(initialDataMap map[string]interface{}) []SubMenuItems {
 func parseMicoSeconds(timeStampStr string) time.Time {
 	tm, _ := strconv.ParseInt(timeStampStr, 10, 64)
 	tm = tm / 1000
-    sec := tm / 1000
-    msec := tm % 1000
-    return time.Unix(sec, msec*int64(time.Millisecond))
+	sec := tm / 1000
+	msec := tm % 1000
+	return time.Unix(sec, msec*int64(time.Millisecond))
 }
 
 func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessage, string, int) {
