@@ -111,6 +111,26 @@ type ChatMessage struct {
 	Timestamp  time.Time
 }
 
+type InitialData struct {
+	Contents struct {
+		TwoColumnWatchNextResults struct {
+			ConversationBar struct {
+				LiveChatRenderer struct {
+					Header struct {
+						LiveChatHeaderRenderer struct {
+							ViewSelector struct {
+								SortFilterSubMenuRenderer struct {
+									SubMenuItems []SubMenuItems `json:"subMenuItems"`
+								}
+							}
+						}	
+					}
+				}
+			}
+		}
+	}
+}
+
 var (
 	LIVE_CHAT_URL = `https://www.youtube.com/youtubei/v1/live_chat/get_%s?key=%s`
 )
@@ -127,16 +147,7 @@ func regexSearch(regex string, str string) []string {
 	return matches
 }
 
-func parseVideoData(initialDataMap map[string]interface{}) []SubMenuItems {
-	_subMenuItems := initialDataMap["contents"].(map[string]interface{})["twoColumnWatchNextResults"].(map[string]interface{})["conversationBar"].(map[string]interface{})["liveChatRenderer"].(map[string]interface{})["header"].(map[string]interface{})["liveChatHeaderRenderer"].(map[string]interface{})["viewSelector"].(map[string]interface{})["sortFilterSubMenuRenderer"].(map[string]interface{})["subMenuItems"]
-	_json, _ := json.Marshal(_subMenuItems)
-	jsonString := string(_json)
-	var subMenuItems []SubMenuItems
-	json.Unmarshal([]byte(jsonString), &subMenuItems)
-	return subMenuItems
-}
-
-func parseMicoSeconds(timeStampStr string) time.Time {
+func parseMicroSeconds(timeStampStr string) time.Time {
 	tm, _ := strconv.ParseInt(timeStampStr, 10, 64)
 	tm = tm / 1000
 	sec := tm / 1000
@@ -174,11 +185,13 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 	chatMessages := []ChatMessage{}
 	for _, action := range actions {
 		liveChatTextMessageRenderer := action.AddChatItemAction.Item.LiveChatTextMessageRenderer
+		// Each chat message is seperated into multiple runs.
+		// Iterate through all runs and generate the chat message.
 		runs := liveChatTextMessageRenderer.Message.Runs
 		if len(runs) > 0 {
 			chatMessage := ChatMessage{}
 			authorName := liveChatTextMessageRenderer.AuthorName.SimpleText
-			chatMessage.Timestamp = parseMicoSeconds(liveChatTextMessageRenderer.TimestampUsec)
+			chatMessage.Timestamp = parseMicroSeconds(liveChatTextMessageRenderer.TimestampUsec)
 			chatMessage.AuthorName = authorName
 			text := ""
 			for _, run := range runs {
@@ -187,6 +200,11 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 				} else {
 					if run.Emoji.IsCustomEmoji {
 						numberOfThumbnails := len(run.Emoji.Image.Thumbnails)
+						// Youtube chat has custom emojis which 
+						// are small PNG images and cannot be displayed as text.
+						//
+						// These custom emojis are available with their image url.						
+						//
 						// Adding some whitespace after custom image URLs
 						// without the whitespace it would be difficult to parse these URLs
 						if numberOfThumbnails > 0 && numberOfThumbnails == 2 {
@@ -203,7 +221,7 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 			chatMessages = append(chatMessages, chatMessage)
 		}
 	}
-	// get new continuation and timeout
+	// extract continuation and timeout received from response
 	timeoutMs := 5
 	continuations := chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations[0]
 	if continuations.TimedContinuationData.Continuation == "" {
@@ -228,7 +246,7 @@ func ParseInitialData(videoUrl string) (string, YtCfg) {
 
 	html := string(intArr)
 
-	// TODO ::  work on regex and do not use trims
+	// TODO ::  work on regex
 	initialDataArr := regexSearch(INITIAL_DATA_REGEX, html)
 	initialData := strings.Trim(initialDataArr[0], "ytInitialData = ")
 	initialData = strings.Trim(initialData, ";</script")
@@ -239,10 +257,10 @@ func ParseInitialData(videoUrl string) (string, YtCfg) {
 	var _ytCfg YtCfg
 	json.Unmarshal([]byte(ytCfg), &_ytCfg)
 
-	var initialDataMap map[string]interface{}
-	json.Unmarshal([]byte(initialData), &initialDataMap)
+	var _initialData InitialData
+	json.Unmarshal([]byte(initialData), &_initialData)
 
-	subMenuItems := parseVideoData(initialDataMap)
+	subMenuItems := _initialData.Contents.TwoColumnWatchNextResults.ConversationBar.LiveChatRenderer.Header.LiveChatHeaderRenderer.ViewSelector.SortFilterSubMenuRenderer.SubMenuItems
 	initialContinuationInfo := subMenuItems[1].Continuation.ReloadContinuationData.Continuation
 	return initialContinuationInfo, _ytCfg
 }
