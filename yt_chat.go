@@ -205,12 +205,12 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 						//
 						// These custom emojis are available with their image url.						
 						//
-						// Adding some whitespace after custom image URLs
+						// Adding some whitespace around custom image URLs
 						// without the whitespace it would be difficult to parse these URLs
 						if numberOfThumbnails > 0 && numberOfThumbnails == 2 {
-							text += run.Emoji.Image.Thumbnails[1].Url + " "
+							text += " " + run.Emoji.Image.Thumbnails[1].Url + " "
 						} else if numberOfThumbnails == 1 {
-							text += run.Emoji.Image.Thumbnails[0].Url + " "
+							text += " " + run.Emoji.Image.Thumbnails[0].Url + " "
 						}
 					} else {
 						text += run.Emoji.EmojiId
