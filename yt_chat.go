@@ -155,7 +155,7 @@ func parseMicroSeconds(timeStampStr string) time.Time {
 	return time.Unix(sec, msec*int64(time.Millisecond))
 }
 
-func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessage, string, int) {
+func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessage, string, int, error) {
 	apiKey := ytCfg.INNERTUBE_API_KEY
 	continuationUrl := fmt.Sprintf(LIVE_CHAT_URL, API_TYPE, apiKey)
 	innertubeContext := ytCfg.INNERTUBE_CONTEXT
@@ -165,23 +165,28 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 	var jsonData = []byte(b)
 	request, error := http.NewRequest("POST", continuationUrl, bytes.NewBuffer(jsonData))
 	if error != nil {
-		panic(error)
+		return nil, "", 0, error
 	}
 	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
 	client := &http.Client{}
 	response, error := client.Do(request)
 	if error != nil {
-		panic(error)
+		return nil, "", 0, error
 	}
 	if response.StatusCode != 200 {
-		panic(fmt.Sprintf("Error fetching chat messages. Status code: %d", response.StatusCode))
+		return nil, "", 0, fmt.Errorf("some error fetching chat messages status code: %d", response.StatusCode)
 	}
-	body, _ := ioutil.ReadAll(response.Body)
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, "", 0, err
+	}
 	response.Body.Close()
 	var chatMsgResp ChatMessagesResponse
 	json.Unmarshal([]byte(string(body)), &chatMsgResp)
 	actions := chatMsgResp.ContinuationContents.LiveChatContinuation.Actions
+
 	chatMessages := []ChatMessage{}
 	for _, action := range actions {
 		liveChatTextMessageRenderer := action.AddChatItemAction.Item.LiveChatTextMessageRenderer
@@ -231,18 +236,21 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 		initialContinuationInfo = continuations.TimedContinuationData.Continuation
 		timeoutMs = continuations.TimedContinuationData.TimeoutMs
 	}
-	return chatMessages, initialContinuationInfo, timeoutMs
+	return chatMessages, initialContinuationInfo, timeoutMs, nil
 }
 
-func ParseInitialData(videoUrl string) (string, YtCfg) {
+func ParseInitialData(videoUrl string) (string, YtCfg, error) {
 	resp, err := http.Get(videoUrl)
 	if err != nil {
-		panic(err)
+		return "", YtCfg{}, err
 	}
 
 	defer resp.Body.Close()
 
-	intArr, _ := ioutil.ReadAll(resp.Body)
+	intArr, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", YtCfg{}, err
+	}
 
 	html := string(intArr)
 
@@ -262,16 +270,19 @@ func ParseInitialData(videoUrl string) (string, YtCfg) {
 
 	subMenuItems := _initialData.Contents.TwoColumnWatchNextResults.ConversationBar.LiveChatRenderer.Header.LiveChatHeaderRenderer.ViewSelector.SortFilterSubMenuRenderer.SubMenuItems
 	initialContinuationInfo := subMenuItems[1].Continuation.ReloadContinuationData.Continuation
-	return initialContinuationInfo, _ytCfg
+	return initialContinuationInfo, _ytCfg, nil
 }
 
-func FetchContinuationChat(continuation string, ytCfg YtCfg) ([]ChatMessage, string) {
-	chatMessages, continuation, timeoutMs := fetchChatMessages(continuation, ytCfg)
+func FetchContinuationChat(continuation string, ytCfg YtCfg) ([]ChatMessage, string, error) {
+	chatMessages, continuation, timeoutMs, error := fetchChatMessages(continuation, ytCfg)
+	if error != nil {
+		return nil, "", error
+	}
 	// Sleep for timeoutMs milliseconds sent by the server
 	if timeoutMs > 0 {
 		time.Sleep(time.Duration(timeoutMs) * time.Millisecond)
 	} else {
 		time.Sleep(time.Second * 5)
 	}
-	return chatMessages, continuation
+	return chatMessages, continuation, nil
 }
