@@ -25,6 +25,7 @@ func main() {
 		chat, newContinuation, error := YtChat.FetchContinuationChat(continuation, cfg)
 		if error != nil {
 			log.Print(error)
+			continue
 		}
 		continuation = newContinuation
 		for _, msg := range chat {
