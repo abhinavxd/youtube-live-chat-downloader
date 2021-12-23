@@ -7,6 +7,9 @@ Fetches Youtube live chat messages with no authentication required.
 * Youtube API returns a `continuation` with new chat messages. This continuation is sent in the next API request to receive new messages and new continuation.
 
 ## Getting started 
+
+	go get -u github.com/abhinavxd/youtube-live-chat-downloader/v2
+
 ```go
 package main
 
