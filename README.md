@@ -11,7 +11,7 @@ Fetches Youtube live chat messages with no authentication required.
 package main
 
 import (
-	YtChat "github.com/abhinavxd/youtube-live-chat-downloader"
+	YtChat "github.com/abhinavxd/youtube-live-chat-downloader/v2"
 	"fmt"
 	"log"
 )
