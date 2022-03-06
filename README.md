@@ -14,9 +14,10 @@ Fetches Youtube live chat messages with no authentication required.
 package main
 
 import (
-	YtChat "github.com/abhinavxd/youtube-live-chat-downloader/v2"
 	"fmt"
 	"log"
+
+	YtChat "github.com/abhinavxd/youtube-live-chat-downloader/v2"
 )
 
 func main() {
@@ -26,6 +27,9 @@ func main() {
 	}
 	for {
 		chat, newContinuation, error := YtChat.FetchContinuationChat(continuation, cfg)
+		if error == YtChat.ErrLiveStreamOver {
+			log.Fatal("Live stream over")
+		}
 		if error != nil {
 			log.Print(error)
 			continue
@@ -37,8 +41,10 @@ func main() {
 		}
 	}
 }
+
 ```
 
+## Screenshot
 ![Screenshot from 2021-10-25 09-40-04](https://user-images.githubusercontent.com/48166553/138645792-03baeb42-3eb9-4685-85f2-12c5ee694720.png)
 
 

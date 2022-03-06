@@ -3,6 +3,7 @@ package YtChat
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -133,7 +134,8 @@ type InitialData struct {
 }
 
 var (
-	LIVE_CHAT_URL = `https://www.youtube.com/youtubei/v1/live_chat/get_%s?key=%s`
+	LIVE_CHAT_URL           = `https://www.youtube.com/youtubei/v1/live_chat/get_%s?key=%s`
+	ErrLiveStreamOver error = errors.New("live stream over")
 )
 
 const (
@@ -226,6 +228,10 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 			chatMessage.Message = text
 			chatMessages = append(chatMessages, chatMessage)
 		}
+	}
+	// No continuation returned from youtube, Stream has ended.
+	if len(chatMsgResp.ContinuationContents.LiveChatContinuation.Continuations) == 0 {
+		return nil, "", 0, ErrLiveStreamOver
 	}
 	// extract continuation and timeout received from response
 	timeoutMs := 5
