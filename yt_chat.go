@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -123,7 +124,7 @@ type InitialData struct {
 									SubMenuItems []SubMenuItems `json:"subMenuItems"`
 								}
 							}
-						}	
+						}
 					}
 				}
 			}
@@ -205,10 +206,10 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 				} else {
 					if run.Emoji.IsCustomEmoji {
 						numberOfThumbnails := len(run.Emoji.Image.Thumbnails)
-						// Youtube chat has custom emojis which 
+						// Youtube chat has custom emojis which
 						// are small PNG images and cannot be displayed as text.
 						//
-						// These custom emojis are available with their image url.						
+						// These custom emojis are available with their image url.
 						//
 						// Adding some whitespace around custom image URLs
 						// without the whitespace it would be difficult to parse these URLs
@@ -240,12 +241,38 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 }
 
 func ParseInitialData(videoUrl string) (string, YtCfg, error) {
-	resp, err := http.Get(videoUrl)
+	req, err := http.NewRequest("GET", videoUrl, nil)
+	if err != nil {
+		return "", YtCfg{}, err
+	}
+	rand.Seed(time.Now().UnixNano())
+	cookie := &http.Cookie{
+		Name:   "CONSENT",
+		Value:  fmt.Sprintf("YES+yt.432048971.it+FX+%d", 100+rand.Intn(999-100+1)),
+		MaxAge: 300,
+	}
+	req.AddCookie(cookie)
+
+	cookie2 := &http.Cookie{
+		Name:   "PREF",
+		Value:  "tz=Europe.Rome",
+		MaxAge: 300,
+	}
+	req.AddCookie(cookie2)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", YtCfg{}, err
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		fmt.Print(videoUrl +
+			"\nresp.StatusCode: " + strconv.Itoa(resp.StatusCode))
+		return "", YtCfg{}, err
+	}
 
 	intArr, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -256,7 +283,7 @@ func ParseInitialData(videoUrl string) (string, YtCfg, error) {
 
 	// TODO ::  work on regex
 	initialDataArr := regexSearch(INITIAL_DATA_REGEX, html)
-	initialData := strings.Trim(initialDataArr[0], "ytInitialData = ")
+	initialData := strings.Trim(string(initialDataArr[0]), "ytInitialData = ")
 	initialData = strings.Trim(initialData, ";</script")
 	ytCfg := regexSearch(YT_CFG_REGEX, html)[0]
 	ytCfg = strings.Trim(ytCfg, "ytcfg.set(")
@@ -269,6 +296,9 @@ func ParseInitialData(videoUrl string) (string, YtCfg, error) {
 	json.Unmarshal([]byte(initialData), &_initialData)
 
 	subMenuItems := _initialData.Contents.TwoColumnWatchNextResults.ConversationBar.LiveChatRenderer.Header.LiveChatHeaderRenderer.ViewSelector.SortFilterSubMenuRenderer.SubMenuItems
+	if len(subMenuItems) == 0 {
+		return "", YtCfg{}, fmt.Errorf("empty initial data, the stream might not be live")
+	}
 	initialContinuationInfo := subMenuItems[1].Continuation.ReloadContinuationData.Continuation
 	return initialContinuationInfo, _ytCfg, nil
 }
