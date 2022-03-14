@@ -136,6 +136,7 @@ type InitialData struct {
 var (
 	LIVE_CHAT_URL           = `https://www.youtube.com/youtubei/v1/live_chat/get_%s?key=%s`
 	ErrLiveStreamOver error = errors.New("live stream over")
+	ErrStreamNotLive  error = errors.New("stream not live")
 )
 
 const (
@@ -303,7 +304,7 @@ func ParseInitialData(videoUrl string) (string, YtCfg, error) {
 
 	subMenuItems := _initialData.Contents.TwoColumnWatchNextResults.ConversationBar.LiveChatRenderer.Header.LiveChatHeaderRenderer.ViewSelector.SortFilterSubMenuRenderer.SubMenuItems
 	if len(subMenuItems) == 0 {
-		return "", YtCfg{}, fmt.Errorf("empty initial data, the stream might not be live")
+		return "", YtCfg{}, ErrStreamNotLive
 	}
 	initialContinuationInfo := subMenuItems[1].Continuation.ReloadContinuationData.Continuation
 	return initialContinuationInfo, _ytCfg, nil
