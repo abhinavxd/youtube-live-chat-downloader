@@ -23,10 +23,6 @@ import (
 )
 
 func main() {
-	// Add your cookies here
-	// Google would sometimes ask you to solve a CAPTCHA before accessing it's websites
-	// or ask for your CONSENT if you are an EU user
-	// You can add those cookies here.
 	customCookies := []*http.Cookie{
 		{Name: "PREF",
 			Value:  "tz=Europe.Rome",
@@ -35,9 +31,13 @@ func main() {
 			Value:  fmt.Sprintf("YES+yt.432048971.it+FX+%d", 100+rand.Intn(999-100+1)),
 			MaxAge: 300},
 	}
+	// Google would sometimes ask user to solve a CAPTCHA before accessing it's websites.
+	// or ask for your CONSENT if you are an EU user
+	// You can add those cookies here.
+	// Adding cookies is OPTIONAL
+	YtChat.AddCookies(customCookies)
 
-	// Set customCookies as nil, if you do not require cookies.
-	continuation, cfg, error := YtChat.ParseInitialData("https://www.youtube.com/watch?v=5qap5aO4i9A", customCookies)
+	continuation, cfg, error := YtChat.ParseInitialData("https://www.youtube.com/watch?v=5qap5aO4i9A")
 	if error != nil {
 		log.Fatal(error)
 	}
@@ -59,6 +59,7 @@ func main() {
 		}
 	}
 }
+
 
 ```
 

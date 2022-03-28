@@ -133,7 +133,11 @@ type InitialData struct {
 }
 
 var (
-	LIVE_CHAT_URL           = `https://www.youtube.com/youtubei/v1/live_chat/get_%s?key=%s`
+	LIVE_CHAT_URL = `https://www.youtube.com/youtubei/v1/live_chat/get_%s?key=%s`
+	// Google would sometimes ask you to solve a CAPTCHA before accessing it's websites
+	// or ask for your CONSENT if you are an EU user
+	// You can add those cookies here.
+	customCookies     []*http.Cookie
 	ErrLiveStreamOver error = errors.New("live stream over")
 	ErrStreamNotLive  error = errors.New("stream not live")
 )
@@ -246,15 +250,12 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 	return chatMessages, initialContinuationInfo, timeoutMs, nil
 }
 
-func ParseInitialData(videoUrl string, customCookies []*http.Cookie) (string, YtCfg, error) {
+func ParseInitialData(videoUrl string) (string, YtCfg, error) {
 	req, err := http.NewRequest("GET", videoUrl, nil)
 	if err != nil {
 		return "", YtCfg{}, err
 	}
 
-	// Google would sometimes ask you to solve a CAPTCHA before accessing it's websites
-	// or ask for your CONSENT if you are an EU user
-	// You can add those cookies here.
 	for _, cookie := range customCookies {
 		req.AddCookie(cookie)
 	}
@@ -314,4 +315,8 @@ func FetchContinuationChat(continuation string, ytCfg YtCfg) ([]ChatMessage, str
 		time.Sleep(time.Second * 5)
 	}
 	return chatMessages, continuation, nil
+}
+
+func AddCookies(cookies []*http.Cookie) {
+	customCookies = cookies
 }
