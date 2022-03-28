@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -247,25 +246,18 @@ func fetchChatMessages(initialContinuationInfo string, ytCfg YtCfg) ([]ChatMessa
 	return chatMessages, initialContinuationInfo, timeoutMs, nil
 }
 
-func ParseInitialData(videoUrl string) (string, YtCfg, error) {
+func ParseInitialData(videoUrl string, customCookies []*http.Cookie) (string, YtCfg, error) {
 	req, err := http.NewRequest("GET", videoUrl, nil)
 	if err != nil {
 		return "", YtCfg{}, err
 	}
-	rand.Seed(time.Now().UnixNano())
-	cookie := &http.Cookie{
-		Name:   "CONSENT",
-		Value:  fmt.Sprintf("YES+yt.432048971.it+FX+%d", 100+rand.Intn(999-100+1)),
-		MaxAge: 300,
-	}
-	req.AddCookie(cookie)
 
-	cookie2 := &http.Cookie{
-		Name:   "PREF",
-		Value:  "tz=Europe.Rome",
-		MaxAge: 300,
+	// Google would sometimes ask you to solve a CAPTCHA before accessing it's websites
+	// or ask for your CONSENT if you are an EU user
+	// You can add those cookies here.
+	for _, cookie := range customCookies {
+		req.AddCookie(cookie)
 	}
-	req.AddCookie(cookie2)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
