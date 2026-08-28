@@ -290,8 +290,15 @@ func ParseInitialData(videoUrl string) (string, YtCfg, error) {
 	return continuations[0].ReloadContinuationData.Continuation, _ytCfg, nil
 }
 
+// FetchContinuationChat fetches the next batch of chat messages and then sleeps for
+// the interval suggested by YouTube before returning.
+//
+// Note that the sleep happens before the messages are handed back to the caller, so
+// the messages are delivered later than they were received. If you need the messages
+// as soon as they arrive, use FetchContinuationChatNoWait and handle the pacing
+// yourself.
 func FetchContinuationChat(continuation string, ytCfg YtCfg) ([]ChatMessage, string, error) {
-	chatMessages, continuation, timeoutMs, error := fetchChatMessages(continuation, ytCfg)
+	chatMessages, continuation, timeoutMs, error := FetchContinuationChatNoWait(continuation, ytCfg)
 	if error != nil {
 		return nil, "", error
 	}
@@ -302,6 +309,22 @@ func FetchContinuationChat(continuation string, ytCfg YtCfg) ([]ChatMessage, str
 		time.Sleep(time.Second * 5)
 	}
 	return chatMessages, continuation, nil
+}
+
+// FetchContinuationChatNoWait fetches the next batch of chat messages and returns
+// immediately, without sleeping. It additionally returns the timeoutMs value that
+// YouTube suggests waiting before the next request, leaving the pacing decision to
+// the caller.
+//
+// Use this when you need to observe messages as soon as they arrive, or when you
+// want to control the polling interval yourself. To reproduce the behaviour of
+// FetchContinuationChat, sleep for timeoutMs after each call.
+func FetchContinuationChatNoWait(continuation string, ytCfg YtCfg) ([]ChatMessage, string, int, error) {
+	chatMessages, continuation, timeoutMs, error := fetchChatMessages(continuation, ytCfg)
+	if error != nil {
+		return nil, "", 0, error
+	}
+	return chatMessages, continuation, timeoutMs, nil
 }
 
 func AddCookies(cookies []*http.Cookie) {

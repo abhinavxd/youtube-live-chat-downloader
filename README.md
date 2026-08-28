@@ -63,6 +63,55 @@ func main() {
 
 ```
 
+## Controlling the polling interval
+
+`FetchContinuationChat` sleeps for the interval YouTube suggests (usually 10 s)
+*before* returning, so messages reach your code later than they arrived over the
+wire. If you need them as soon as possible, use `FetchContinuationChatNoWait`,
+which returns immediately and hands you the suggested `timeoutMs` so you can
+pace requests yourself:
+
+```go
+// How long to wait between requests. Lower means fresher messages.
+const pollInterval = time.Second
+
+for {
+	start := time.Now()
+
+	chat, newContinuation, timeoutMs, err := YtChat.FetchContinuationChatNoWait(continuation, cfg)
+	if errors.Is(err, YtChat.ErrLiveStreamOver) {
+		log.Fatal("Live stream over")
+	}
+	if err != nil {
+		log.Print(err)
+		time.Sleep(time.Second)
+		continue
+	}
+	continuation = newContinuation
+
+	for _, msg := range chat {
+		fmt.Print(msg.Timestamp, " | ")
+		fmt.Println(msg.AuthorName, ": ", msg.Message)
+	}
+
+	// Poll at pollInterval, or sooner if the server suggests a shorter wait.
+	wait := pollInterval
+	if suggested := time.Duration(timeoutMs) * time.Millisecond; suggested < wait {
+		wait = suggested
+	}
+	if d := wait - time.Since(start); d > 0 {
+		time.Sleep(d)
+	}
+}
+```
+
+Sleeping for the full `timeoutMs` instead reproduces the behaviour of
+`FetchContinuationChat`.
+
+Note that `timeoutMs` is a hint, not an enforced limit. Polling faster is
+possible, but going too aggressive risks HTTP 429 responses, so handle that
+case if you lower the interval.
+
 ## Screenshot
 ![Screenshot from 2021-10-25 09-40-04](https://user-images.githubusercontent.com/48166553/138645792-03baeb42-3eb9-4685-85f2-12c5ee694720.png)
 
